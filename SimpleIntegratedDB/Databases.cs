@@ -33,3 +33,9 @@ public class DatabaseClient(object obj, string path)
             dbs[i].SetValue(Obj, loadedData.ToArray()[i]);
     }
 }
+
+// TODO 
+// - Validation
+//   - Type
+//   - Type structure
+//   - IO
