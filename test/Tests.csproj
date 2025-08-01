@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\SimpleIntegratedDB\SimpleIntegratedDB.csproj" />
+    <ProjectReference Include="..\src\SimpleIntegratedDB.csproj" />
   </ItemGroup>
 
 </Project>
