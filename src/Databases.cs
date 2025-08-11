@@ -1,6 +1,8 @@
 using System.Collections;
 using System.Reflection;
+using System.Text;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace CyanDevelopers.SimpleIntegratedDB;
 
@@ -9,47 +11,48 @@ public class Database : IDisposable
     private string Path { get; init; }
     ICollection<PropertyInfo> Tables { get; init; }
 
-    public Database(string path, bool loadLate = false, bool saveExit = true)
+    public Database(DatabaseConfiguration configuration)
     {
-        Tables = GetType().GetProperties().Where(x => x.PropertyType.GetGenericTypeDefinition() == typeof(Table<>))
-            .ToList();
-        Path = path;
-        if (!loadLate) LoadSync(path);
-        if (saveExit)
-            AppDomain.CurrentDomain.ProcessExit += (object? s, EventArgs args) => Save();
+        Path = configuration.Path;
+        Tables = GetType().GetProperties().Where(x => x.PropertyType.GetGenericTypeDefinition() == typeof(Table<>)).ToList();
+        if (!configuration.LoadLate) Load();
+        if (configuration.SaveOnExit) AppDomain.CurrentDomain.ProcessExit += (object? s, EventArgs args) => Save();
     }
 
-    private void LoadSync(string path)
+    public void Load()
     {
         if (!File.Exists(Path)) return;
-        Dictionary<string, ICollection<object>?> rawDatabase = JsonConvert.DeserializeObject<Dictionary<string, ICollection<object>?>>(File.ReadAllText(Path)) ?? new();
-        LoadDictionary(rawDatabase);
+        LoadStringGeneric(File.ReadAllText(Path));
     }
 
-    public async Task Load()
+    public async Task LoadAsync()
     {
         if (!File.Exists(Path)) return;
-        Dictionary<string, ICollection<object>?> rawDatabase = JsonConvert.DeserializeObject<Dictionary<string, ICollection<object>?>>(await File.ReadAllTextAsync(Path)) ?? new();
-        LoadDictionary(rawDatabase);
+        LoadStringGeneric(await File.ReadAllTextAsync(Path));
     }
-
-    private void LoadDictionary(Dictionary<string, ICollection<object>?> db)
+    private void LoadStringGeneric(string s)
     {
-        foreach (KeyValuePair<string, ICollection<object>?> table in db)
+        Dictionary<string, ICollection<JToken>?> db = JsonConvert.DeserializeObject<Dictionary<string, ICollection<JToken>?>>(s) ?? new();
+        foreach (KeyValuePair<string, ICollection<JToken>?> table in db)
         {
             PropertyInfo? property = Tables.FirstOrDefault(x => x.Name == table.Key);
             if (table.Value == null || property == null) continue;
-            // TODO Null check
             Type target = property.PropertyType.GenericTypeArguments[0];
-            object? castedIEnumerable =
-                typeof(Enumerable).GetMethod("Cast")!.MakeGenericMethod(target).Invoke(null, [table.Value]);
-            MethodInfo toList = typeof(Enumerable).GetMethod("ToList")!.MakeGenericMethod([target]);
-            object? castedTable = typeof(Table<>).MakeGenericType(target).GetConstructor([typeof(ICollection<>).MakeGenericType(target)])?.Invoke([toList.Invoke(null, [castedIEnumerable])]);
-            if (castedTable == null) return;
-            property.SetValue(this, castedTable);
+            StringBuilder debug = new StringBuilder();
+            typeof(Database)
+                .GetMethods(BindingFlags.Instance | BindingFlags.NonPublic).First(x => x.Name == "LoadTableGeneric" && x.IsGenericMethodDefinition)
+                .MakeGenericMethod(target)
+                .Invoke(this, [property, table.Value]);
         }
     }
-
+    private void LoadTableGeneric<T>(PropertyInfo property, ICollection<JToken> jvalue)
+    {
+        List<T?> nullableValue = jvalue.Select(x => x.ToObject<T>()).ToList();
+        nullableValue.RemoveAll(x => x == null);
+        ICollection<T>? value = nullableValue!;
+        if (value == null) return;
+        property.SetValue(this, new Table<T>(value));
+    }
     protected void Save()
     {
         Dictionary<string, ICollection<object>?> tables = new();
@@ -91,9 +94,10 @@ public sealed class Table<T> : ICollection<T>
     public Table(params ICollection<T> values) => Values = values;
 }
 
-// TODO 
-// Complete system change - DataSet from EF
-// - Validation
-//   - Type
-//   - Type structure
-//   - IO
+public class DatabaseConfiguration()
+{
+    public bool LoadLate { get; set; } = false;
+    public bool SaveOnExit { get; set; } = true;
+    public required string Path { get; set; }
+    public static DatabaseConfiguration Default(string path) => new DatabaseConfiguration() { Path = path };
+}
