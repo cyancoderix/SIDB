@@ -64,6 +64,7 @@ public class UnitTest
     private void ClearFile(string path) => File.Delete(path);
     private bool CheckRefCollection<T>(ICollection<T> a, ICollection<T> b)
     {
+        if (a.Count != b.Count) return false;
         bool result = true;
         for (int i = 0; i < a.Count; i++)
             result = a.ToArray()[i]!.Equals(b.ToArray()[i]) ? result : false;
