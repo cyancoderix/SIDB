@@ -8,5 +8,3 @@
 Any bugs or improvements send to the [GitHub](https://github.com/cyancoderix/SIDB) repository.
 
 Hope this package will be great. Enjoy!
-
-<!-- TODO Marketing -->

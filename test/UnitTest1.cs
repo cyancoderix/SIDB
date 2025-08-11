@@ -42,7 +42,7 @@ public class UnitTest
     [Fact]
     public void Test1Primitive()
     {
-        DeleteFile("testPrim.json");
+        ClearFile("testPrim.json");
         TestDBPrimitive db = new TestDBPrimitive();
         db.Test.Add(45);
         db.Save();
@@ -53,7 +53,7 @@ public class UnitTest
     [Fact]
     public void Test1Reference()
     {
-        DeleteFile("testRef.json");
+        ClearFile("testRef.json");
         TestDBReference db = new TestDBReference();
         db.Test.Add(new MyClass("Test3", "Desc3"));
         db.Save();
@@ -61,7 +61,7 @@ public class UnitTest
         db2.Load();
         Assert.True(CheckRefCollection(db.Test.ToList(),db2.Test.ToList()));
     }
-    private void DeleteFile(string path) => File.Delete(path);
+    private void ClearFile(string path) => File.Delete(path);
     private bool CheckRefCollection<T>(ICollection<T> a, ICollection<T> b)
     {
         bool result = true;
