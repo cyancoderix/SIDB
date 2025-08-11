@@ -9,5 +9,12 @@
 
 <br/>
 
+## Further information
+See more in the [wiki](https://github.com/cyancoderix/SIDB/wiki).
+**To install the package, see the [Installation](https://github.com/cyancoderix/SIDB/wiki/Installation) page.**
+
+<br/>
+
+## Disclaimer
 ### Project is now archived because anyone can use SQLite.
 > **DISLAIMER: The project because of archivation is now marked as not stable, be aware of any possible bugs and errors.**
